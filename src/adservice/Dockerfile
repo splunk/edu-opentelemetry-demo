@@ -24,8 +24,10 @@ ARG version=1.31.0
 WORKDIR /usr/src/app/
 
 COPY --from=builder /usr/src/app/ ./
-ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v$version/opentelemetry-javaagent.jar /usr/src/app/opentelemetry-javaagent.jar
-ENV JAVA_TOOL_OPTIONS=-javaagent:/usr/src/app/opentelemetry-javaagent.jar
+# Previously we had the opentelemetry instrumentation.  Switched for Splunk instruementation to get always-on-profiling.
+#ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v$version/opentelemetry-javaagent.jar /usr/src/app/opentelemetry-javaagent.jar
+ADD https://github.com/signalfx/splunk-otel-java/releases/latest/download/splunk-otel-javaagent.jar /usr/src/app/splunk-otel-javaagent.jar
+ENV JAVA_TOOL_OPTIONS=-javaagent:/usr/src/app/splunk-otel-javaagent.jar
 
 EXPOSE ${AD_SERVICE_PORT}
 ENTRYPOINT [ "./build/install/opentelemetry-demo-ad-service/bin/AdService" ]

@@ -8,6 +8,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY ./src/frontend/package*.json ./
+# Added splunk instrumentation package to get always-on-profiling
+RUN npm install @splunk/otel
 RUN npm ci
 
 FROM node:18-alpine AS builder
