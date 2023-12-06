@@ -42,7 +42,50 @@ const nextConfig = {
       config.resolve.fallback.fs = false;
     }
 
-    return config;
+    // Leave server bundle as-is
+    if (isServer) {
+      return config;
+    }
+    // Overwrite current entrypoints
+    const origEntry = config.entry;
+    const entry = async () => {
+      let entries = origEntry;
+      if (typeof entries === 'function') {
+        entries = await entries();
+      }
+
+      const instrumentFile = './splunk-rum.js';
+
+      // Webpack accepts string, string[] or object as entrypoint values
+      // https://webpack.js.org/configuration/entry-context/#entry
+      // Generally, in our testing main is just a string value
+      // but for completeness/future safety this covers all
+      if (typeof entries.main === 'string') {
+        entries.main = [instrumentFile, entries.main];
+      } else if (Array.isArray(entries.main)) {
+        entries.main = [instrumentFile, ...entries.main];
+      } else {
+        let imported = entries.main.import;
+        if (typeof imported === 'string') {
+          imported = [instrumentFile, imported];
+        } else {
+          imported = [instrumentFile, ...imported];
+        }
+
+        entries.main = {
+          ...entries.main,
+          import: imported
+        };
+      }
+
+      return entries;
+    };
+
+    // Replace entry in config with new value
+    return {
+      ...config,
+      entry
+    };
   },
   env: {
     AD_SERVICE_ADDR,
@@ -60,3 +103,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
