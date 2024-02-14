@@ -23,6 +23,7 @@ from opentelemetry.instrumentation.jinja2 import Jinja2Instrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor
+from playwright.async_api import Route, Request
 
 exporter = OTLPMetricExporter(insecure=True)
 set_meter_provider(MeterProvider([PeriodicExportingMetricReader(exporter)]))
@@ -133,32 +134,41 @@ class WebsiteUser(HttpUser):
         self.index()
 
 
-browser_traffic_enabled = os.environ.get('LOCUST_BROWSER_TRAFFIC_ENABLED', False)
+browser_traffic_enabled = os.environ.get("LOCUST_BROWSER_TRAFFIC_ENABLED", "").lower() in ("true", "yes", "on")
 
 if browser_traffic_enabled:
     class WebsiteBrowserUser(PlaywrightUser):
         headless = True  # to use a headless browser, without a GUI
-        multiplier = 1  # run concurrent playwright sessions/browsers for each Locust user
-        wait_time = between(1, 10)
 
         @task
         @pw
-        async def open_cart_browser_page(self, page: PageWithRetry):
+        async def open_cart_page_and_change_currency(self, page: PageWithRetry):
             try:
-                async with event(self, "Load up Cart Page"):
-                    await page.goto("/cart")
+                page.on("console", lambda msg: print(msg.text))
+                await page.route('**/*', add_baggage_header)
+                await page.goto("/cart", wait_until="domcontentloaded")
+                await page.select_option('[name="currency_code"]', 'CHF')
+                await page.wait_for_timeout(2000)  # giving the browser time to export the traces
             except:
                 pass
 
         @task
         @pw
-        async def open_home_browser_page(self, page: PageWithRetry):
+        async def add_product_to_cart(self, page: PageWithRetry):
             try:
-                async with event(self, "Load up Astronomy Shop home page"):
-                    await page.goto("/")
-                async with event(self, "Click on Go Shopping button"):
-                    async with page.expect_navigation(wait_until="domcontentloaded"):
-                        await page.click('button:has-text("Go Shopping")')
+                page.on("console", lambda msg: print(msg.text))
+                await page.route('**/*', add_baggage_header)
+                await page.goto("/", wait_until="domcontentloaded")
+                await page.click('p:has-text("Roof Binoculars")', wait_until="domcontentloaded")
+                await page.click('button:has-text("Add To Cart")', wait_until="domcontentloaded")
+                await page.wait_for_timeout(2000)  # giving the browser time to export the traces
             except:
                 pass
 
+
+async def add_baggage_header(route: Route, request: Request):
+    headers = {
+        **request.headers,
+        'baggage': 'synthetic_request=true'
+    }
+    await route.continue_(headers=headers)
