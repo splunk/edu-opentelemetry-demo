@@ -46,7 +46,7 @@ COPY package*.json ./
 RUN npm install
 
 # add app
-COPY src ./src
-COPY start.sh / 
+COPY ./src ./src
+COPY ./start.sh /
 
-CMD [ "sh", "/start.sh" ]
+ENTRYPOINT [ "sh", "/start.sh" ]

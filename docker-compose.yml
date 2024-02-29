@@ -391,6 +391,29 @@ services:
         condition: service_started
     logging: *logging
 
+# Front end RUM data generator
+  frontendclicker:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}-frontendclicker
+    container_name: clicker
+    build:
+      context: ./src/frontendclicker
+      dockerfile: ./Dockerfile
+      cache_from:
+        - ${IMAGE_NAME}:${IMAGE_VERSION}-frontedclicker
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    restart: always
+    environment:
+      - BROWSER=chrome
+      - DELAY=5
+      - SHOP_URL=http://${FRONTEND_ADDR}
+    depends_on:
+      frontend:
+        condition: service_started
+    logging: *logging
+
   # Payment service
   paymentservice:
     image: ${IMAGE_NAME}:${IMAGE_VERSION}-paymentservice
