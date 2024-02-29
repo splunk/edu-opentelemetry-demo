@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astroshop-edu-o11y-frontendclicker
+  labels:
+    opentelemetry.io/name: astroshop-edu-o11y-frontendclicker
+    app.kubernetes.io/instance: astroshop-edu-o11y
+    app.kubernetes.io/component: frontendclicker
+    app.kubernetes.io/name: astroshop-edu-o11y-frontendclicker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      
+      opentelemetry.io/name: astroshop-edu-o11y-frontendclicker
+  template:
+    metadata:
+      labels:
+        
+        opentelemetry.io/name: astroshop-edu-o11y-frontendclicker
+        app.kubernetes.io/instance: astroshop-edu-o11y
+        app.kubernetes.io/component: frontendclicker
+        app.kubernetes.io/name: astroshop-edu-o11y-frontendclicker
+    spec:
+      serviceAccountName: astroshop-edu-o11y
+      containers:
+        - name: frontendclicker
+          image: ghcr.io/alexpsplunk/astroshop:1.8.0-edu-o11y-frontendclicker
+          imagePullPolicy: Always
+          env:
+          - name: OTEL_SERVICE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.labels['app.kubernetes.io/component']
+          - name: OTEL_COLLECTOR_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+            value: cumulative
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://$(OTEL_COLLECTOR_NAME):4318
+          - name: OTEL_LOGS_EXPORTER
+            value: otlp
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: deployment.environment=astroshop
+          - name: CLICKER_INTERVAL
+            value: "1"
+          - name: SHOP_URL
+            value: http://astroshop-edu-o11y-frontend:8080
+
+          resources:
+            limits:
+              memory: 768M
