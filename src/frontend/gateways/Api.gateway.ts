@@ -66,6 +66,7 @@ const ApiGateway = () => ({
     });
   },
   getProduct(productId: string, currencyCode: string) {
+    console.log(`frontend getProduct(${productId}, ${currencyCode})`)
     return request<Product>({
       url: `${basePath}/products/${productId}`,
       queryParams: { currencyCode },

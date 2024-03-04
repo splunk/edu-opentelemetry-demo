@@ -1,6 +1,9 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
+using OpenTracing;
+using OpenTracing.Util;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
@@ -169,7 +172,23 @@ public class RedisCartStore : ICartStore
 
     public async Task<Oteldemo.Cart> GetCartAsync(string userId)
     {
-        _logger.LogInformation("GetCartAsync called with userId={userId}", userId);
+        var tracer = GlobalTracer.Instance;
+
+	using (IScope scope = tracer.BuildSpan("SerilogExample - Main()").StartActive(finishSpanOnDispose: true))
+                {
+			            // Retrieve the current activity (which represents a span)
+            	    Activity currentActivity = Activity.Current;
+
+            	    if (currentActivity != null)
+            	    {
+                	    // Retrieve the trace_id and span_id from the current activity
+                	string traceId = currentActivity.TraceId.ToString();
+	                string spanId = currentActivity.SpanId.ToString();
+
+        			_logger.LogInformation("GetCartAsync called with userId={userId}, {trace_id} {span_id}", userId, traceId, spanId);
+		    }
+                }
+        //_logger.LogInformation("GetCartAsync called with userId={userId}", userId);
 
         try
         {

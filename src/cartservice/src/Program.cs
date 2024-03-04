@@ -17,18 +17,86 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.ResourceDetectors.Container;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Json;
+using Serilog.Sinks.OpenTelemetry;
+using Serilog.Templates;
+
+
+// Alex: the next step would be to change the level "information" to info.  ChatGPT suggests
+// Using Filters to create custom expression templates for different levels:
+// using Serilog;
+//using Serilog.Core;
+//using Serilog.Events;
+//using Serilog.Expressions;
+//
+//namespace YourNamespace
+//{
+//    class Program
+//    {
+//        static void Main(string[] args)
+//        {
+//            var levelSwitch = new LoggingLevelSwitch();
+//            levelSwitch.MinimumLevel = LogEventLevel.Information; // Set minimum level to Information
+//
+//            Log.Logger = new LoggerConfiguration()
+//                .MinimumLevel.ControlledBy(levelSwitch) // Set the minimum logging level
+//                .WriteTo.Console(new ExpressionTemplate("{Timestamp:yyyy-MM-dd HH:mm:ss} [{BoogieLevel}] {Message:lj}{NewLine}{Exception}")
+//                    .Enrich.FromLogContext() // Enrich with default properties
+//                    .Enrich.WithProperty("InfoLevel", evt => evt.Level == LogEventLevel.Information ? "info" : evt.Level.ToString())) // Enrich with custom property based on log level
+//                .CreateLogger();
+//
+//            Log.Information("This is an info message.");
+//            Log.Error("This is an error message.");
+//
+//            Log.CloseAndFlush();
+//        }
+//    }
+//}
+
+string template = "{ {Timestamp: @t, msg: @m, severity: @l, @x, ..@p} }\n";
+//string expressionTemplate = "{\"Timestamp\":\"{Timestamp:yyyy-MM-dd HH:mm:ss}\",\"severity\":\"{Level}\"}\n";
 
 var builder = WebApplication.CreateBuilder(args);
 string redisAddress = builder.Configuration["REDIS_ADDR"];
+string collectorAddress = builder.Configuration["OTEL_COLLECTOR_NAME"];
 if (string.IsNullOrEmpty(redisAddress))
 {
     Console.WriteLine("REDIS_ADDR environment variable is required.");
     Environment.Exit(1);
 }
+if (string.IsNullOrEmpty(collectorAddress))
+{
+    Console.WriteLine("OTEL_COLLECTOR_NAME environment variable is required.");
+    Environment.Exit(1);
+}
 
-builder.Logging
-    .AddOpenTelemetry(options => options.AddOtlpExporter())
-    .AddConsole();
+//string outputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] trace_id=\"{trace_id}\" span_id=\"{span_id}\" service.name=\"{service_name}\" service.version=\"{service_version}\" deployment.environment=\"{deployment_environment}\"{NewLine}{Message:lj}{NewLine}{Exception}";
+
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.OpenTelemetry(options =>
+	    {
+        options.Endpoint = $"http://{collectorAddress}:4317";
+    })
+    .WriteTo.Console(new ExpressionTemplate(template))
+    .CreateLogger();
+
+    //.WriteTo.Console(new JsonFormatter())
+    //
+// Configure Serilog to log to stdout
+//Log.Logger = new LoggerConfiguration()
+//   .Enrich.FromLogContext()
+//   .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter())
+//   .CreateLogger();
+//
+    //.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter())
+builder.Logging.ClearProviders(); // Clear default logging providers
+builder.Logging.AddSerilog(Log.Logger); // Add Serilog
+	
+//builder.Logging
+//   .AddOpenTelemetry(options => options.AddOtlpExporter())
+//   .AddConsole();
 
 builder.Services.AddSingleton<ICartStore>(x=>
 {
