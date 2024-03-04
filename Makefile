@@ -86,6 +86,11 @@ build-and-push-ghcr:
 	docker compose --env-file .ghcr.env -f docker-compose.yml build
 	docker compose --env-file .ghcr.env -f docker-compose.yml push
 
+.PHONY: build-and-push-ghcr-one
+build-and-push-ghcr-cartservice:
+	docker compose --env-file .ghcr.env -f docker-compose.yml build cartservice
+	docker compose --env-file .ghcr.env -f docker-compose.yml push cartservice
+
 .PHONY: build-env-file
 build-env-file:
 	cp .env .dockerhub.env
