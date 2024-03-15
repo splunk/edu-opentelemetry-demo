@@ -103,8 +103,6 @@ build-env-file:
 .PHONY: run-tests
 run-tests:
 	docker compose run frontendTests
-	# integrationTests is deprecated in favor of traceBasedTests
-	# docker compose run integrationTests
 	docker compose run traceBasedTests
 
 .PHONY: run-tracetesting
@@ -138,7 +136,6 @@ start:
 	@echo "Go to http://localhost:8080/jaeger/ui for the Jaeger UI."
 	@echo "Go to http://localhost:8080/grafana/ for the Grafana UI."
 	@echo "Go to http://localhost:8080/loadgen/ for the Load Generator UI."
-	@echo "Go to http://localhost:8080/feature/ for the Feature Flag UI."
 
 .PHONY: start-minimal
 start-minimal:
@@ -160,12 +157,11 @@ start-odd:
 	@echo "Go to http://localhost:8080/jaeger/ui for the Jaeger UI."
 	@echo "Go to http://localhost:8080/grafana/ for the Grafana UI."
 	@echo "Go to http://localhost:8080/loadgen/ for the Load Generator UI."
-	@echo "Go to http://localhost:8080/feature/ for the Feature Flag UI."
 	@echo "Go to http://localhost:11633/ for the Tracetest Web UI."
 
 .PHONY: stop
 stop:
-	docker compose down --remove-orphans --volumes
+	docker compose --profile tests --profile odd down --remove-orphans --volumes
 	@echo ""
 	@echo "OpenTelemetry Demo is stopped."
 
