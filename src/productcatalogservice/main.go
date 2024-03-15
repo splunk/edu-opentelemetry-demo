@@ -52,6 +52,16 @@ var (
 
 func init() {
 	log = logrus.New()
+        log.Level = logrus.DebugLevel
+        log.Formatter = &logrus.JSONFormatter{
+                FieldMap: logrus.FieldMap{
+                        logrus.FieldKeyTime:  "timestamp",
+                        logrus.FieldKeyLevel: "severity",
+                        logrus.FieldKeyMsg:   "message",
+                },
+                TimestampFormat: time.RFC3339Nano,
+        }
+
 	var err error
 	catalog, err = readProductFiles()
 	if err != nil {
@@ -231,7 +241,10 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 
 	// GetProduct will fail on a specific product when feature flag is enabled
 	if p.checkProductFailure(ctx, req.Id) {
+		spanLogger := log.WithFields(logrus.Fields{"trace_id" :span.SpanContext().TraceID(),
+							"span_id" : span.SpanContext().SpanID()})
 		msg := fmt.Sprintf("Error: ProductCatalogService Fail Feature Flag Enabled")
+		spanLogger.Errorf("Failed to LoadProduct id %s.", req.Id)
 		span.SetStatus(otelcodes.Error, msg)
 		span.AddEvent(msg)
 		return nil, status.Errorf(codes.Internal, msg)
@@ -257,6 +270,9 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	span.SetAttributes(
 		attribute.String("app.product.name", found.Name),
 	)
+	spanLogger := log.WithFields(logrus.Fields{"trace_id" :span.SpanContext().TraceID(),
+							"span_id" : span.SpanContext().SpanID()})
+	spanLogger.Info(msg)
 	return found, nil
 }
 
