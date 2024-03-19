@@ -21,6 +21,9 @@ using Serilog;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.OpenTelemetry;
 using Serilog.Templates;
+using OpenFeature;
+using OpenFeature.Contrib.Providers.Flagd;
+using OpenFeature.Contrib.Hooks.Otel;
 
 
 // Alex: the next step would be to change the level "information" to info.  ChatGPT suggests
@@ -56,9 +59,6 @@ using Serilog.Templates;
 
 string template = "{ {Timestamp: @t, msg: @m, severity: @l, @x, ..@p} }\n";
 //string expressionTemplate = "{\"Timestamp\":\"{Timestamp:yyyy-MM-dd HH:mm:ss}\",\"severity\":\"{Level}\"}\n";
-using OpenFeature;
-using OpenFeature.Contrib.Providers.Flagd;
-using OpenFeature.Contrib.Hooks.Otel;
 
 var builder = WebApplication.CreateBuilder(args);
 string redisAddress = builder.Configuration["REDIS_ADDR"];
