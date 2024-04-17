@@ -17,6 +17,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	
+	"errors"
+	"math/rand"
+	"strconv"
+
 
 	"github.com/sirupsen/logrus"
 
@@ -51,6 +56,7 @@ var (
 	catalog           []*pb.Product
 	resource          *sdkresource.Resource
 	initResourcesOnce sync.Once
+	failPercent	  int
 )
 
 func init() {
@@ -64,6 +70,20 @@ func init() {
                 },
                 TimestampFormat: time.RFC3339Nano,
         }
+
+	// Get the failure percentage
+	failPercent=1
+	envValue := os.Getenv("PRODUCT_CATALOG_RANDOM_FAIL_FREQUENCY")
+	if envValue != "" {
+	    intValue, err := strconv.Atoi(envValue)
+	    if err != nil {
+		fmt.Printf("Error converting string to integer: %s\n", err)
+	    } else {
+		failPercent = intValue
+	    }
+        }
+
+	log.Infof("This service will fail on calls to getProducts %d percent of the time", failPercent)
 
 	var err error
 	catalog, err = readProductFiles()
@@ -255,11 +275,24 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	span.SetAttributes(
 		attribute.String("app.product.id", req.Id),
 	)
+	spanLogger := log.WithFields(logrus.Fields{"trace_id" :span.SpanContext().TraceID(),
+						   "span_id" : span.SpanContext().SpanID()})
+
+	// ABP: Throw an error some percent of the time
+	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
+	randomNumber := rand.Intn(100)
+	if randomNumber < failPercent {
+	    msg := fmt.Sprintf("Failing on random probability %d%% to simulate container error", failPercent)
+	    err := errors.New(msg)
+	    msg = fmt.Sprintf("Error:", err.Error())
+	    spanLogger.Errorf(msg)
+	    log.Errorf(msg)
+	    panic(err)
+	}
+
 
 	// GetProduct will fail on a specific product when feature flag is enabled
 	if p.checkProductFailure(ctx, req.Id) {
-		spanLogger := log.WithFields(logrus.Fields{"trace_id" :span.SpanContext().TraceID(),
-							"span_id" : span.SpanContext().SpanID()})
 		msg := fmt.Sprintf("Error: ProductCatalogService Fail Feature Flag Enabled")
 		spanLogger.Errorf("Failed to LoadProduct id %s.", req.Id)
 		span.SetStatus(otelcodes.Error, msg)
@@ -287,8 +320,6 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	span.SetAttributes(
 		attribute.String("app.product.name", found.Name),
 	)
-	spanLogger := log.WithFields(logrus.Fields{"trace_id" :span.SpanContext().TraceID(),
-							"span_id" : span.SpanContext().SpanID()})
 	spanLogger.Info(msg)
 	return found, nil
 }
