@@ -56,7 +56,7 @@ var (
 	catalog           []*pb.Product
 	resource          *sdkresource.Resource
 	initResourcesOnce sync.Once
-	failPercent	  int
+	failRatePerThousand	  int
 )
 
 func init() {
@@ -71,19 +71,19 @@ func init() {
                 TimestampFormat: time.RFC3339Nano,
         }
 
-	// Get the failure percentage
-	failPercent=1
-	envValue := os.Getenv("PRODUCT_CATALOG_RANDOM_FAIL_FREQUENCY")
+	// Get the failure rate per 1000 calls
+	failRatePerThousand=5
+	envValue := os.Getenv("PRODUCT_CATALOG_FAILS_PER_THOUSAND_CALLS")
 	if envValue != "" {
 	    intValue, err := strconv.Atoi(envValue)
 	    if err != nil {
 		fmt.Printf("Error converting string to integer: %s\n", err)
 	    } else {
-		failPercent = intValue
+		failRatePerThousand = intValue
 	    }
         }
 
-	log.Infof("This service will fail on calls to getProducts %d percent of the time", failPercent)
+	log.Infof("This service will fail on calls to getProducts approx %d out of every thousand calls", failRatePerThousand)
 
 	var err error
 	catalog, err = readProductFiles()
@@ -278,13 +278,13 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	spanLogger := log.WithFields(logrus.Fields{"trace_id" :span.SpanContext().TraceID(),
 						   "span_id" : span.SpanContext().SpanID()})
 
-	// ABP: Throw an error some percent of the time
+	// ABP: Throw an error some portion of the time
 	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
-	randomNumber := rand.Intn(100)
-	if randomNumber < failPercent {
-	    msg := fmt.Sprintf("Failing on random probability %d%% to simulate container error", failPercent)
+	randomNumber := rand.Intn(1000)
+	if randomNumber < failRatePerThousand {
+	    msg := fmt.Sprintf("Random fail to simulate container error. Fail rate is %d per thousand calls", failRatePerThousand)
 	    err := errors.New(msg)
-	    msg = fmt.Sprintf("Error:", err.Error())
+	    msg = fmt.Sprintf("Error: %s", msg)
 	    spanLogger.Errorf(msg)
 	    log.Errorf(msg)
 	    panic(err)
