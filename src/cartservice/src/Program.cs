@@ -1,6 +1,7 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 using System;
+using System.Collections.Generic;
 
 using cartservice.cartstore;
 using cartservice.services;
@@ -63,6 +64,7 @@ string template = "{ {Timestamp: @t, msg: @m, severity: @l, @x, ..@p} }\n";
 var builder = WebApplication.CreateBuilder(args);
 string redisAddress = builder.Configuration["REDIS_ADDR"];
 string collectorAddress = builder.Configuration["OTEL_COLLECTOR_NAME"];
+string serviceName = builder.Configuration["OTEL_SERVICE_NAME"];
 if (string.IsNullOrEmpty(redisAddress))
 {
     Console.WriteLine("REDIS_ADDR environment variable is required.");
@@ -81,6 +83,10 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.OpenTelemetry(options =>
 	    {
         options.Endpoint = $"http://{collectorAddress}:4317";
+	options.ResourceAttributes = new Dictionary<string, object>
+            {
+                ["service.name"] = serviceName
+            };
     })
     .WriteTo.Console(new ExpressionTemplate(template))
     .CreateLogger();
