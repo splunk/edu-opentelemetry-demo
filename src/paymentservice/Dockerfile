@@ -19,8 +19,8 @@ WORKDIR /usr/src/app/
 ENV NODE_ENV production
 
 COPY --chown=node:node --from=build /usr/src/app/node_modules/ ./node_modules/
-COPY ./src/paymentservice/ ./
-COPY ./pb/demo.proto ./
+COPY --chown=node:node ./src/paymentservice/ ./
+COPY --chown=node:node ./pb/demo.proto ./
 
 EXPOSE ${PAYMENT_SERVICE_PORT}
 ENTRYPOINT [ "npm", "run", "start" ]

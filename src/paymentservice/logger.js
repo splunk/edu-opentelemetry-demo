@@ -3,4 +3,25 @@
 
 const pino = require('pino');
 
-module.exports = pino();
+// Custom level serializer
+const levelMapping = {
+  10: 'trace',
+  20: 'debug',
+  30: 'info',
+  40: 'warn',
+  50: 'error',
+  60: 'fatal'
+};
+
+module.exports = pino({
+  level: 'info',
+  formatters: {
+    level(label, number) {
+      return { severity: levelMapping[number] || number };
+    },
+    log(object) {
+      return { ...object };
+    }
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
+});
