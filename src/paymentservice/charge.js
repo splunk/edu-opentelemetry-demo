@@ -59,7 +59,8 @@ module.exports.charge = async request => {
       const randomNumber = Math.floor(Math.random() * 1000) + 1;
       if (randomNumber <= failRate) {  
         let errorMsg="PaymentService charge failed. Bad API token (simulated).";
-        logger.error({transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode }}, errorMsg);
+        //Already getting logged when the error is caught.
+        //logger.error({transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode }}, errorMsg);
         throw new Error(errorMsg);
       }
   }
