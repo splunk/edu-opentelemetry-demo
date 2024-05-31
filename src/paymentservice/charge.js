@@ -20,6 +20,7 @@ module.exports.charge = async request => {
   if (await OpenFeature.getClient().getBooleanValue("paymentServiceFailure", false)) {
     throw new Error("PaymentService Fail Feature Flag Enabled");
   }
+  
 
   const {
     creditCardNumber: number,
@@ -33,6 +34,7 @@ module.exports.charge = async request => {
 
   const card = cardValidator(number);
   const { card_type: cardType, valid } = card.getCardDetails();
+  const { units, nanos, currencyCode } = request.amount;
 
   span.setAttributes({
     'app.payment.card_type': cardType,
@@ -51,6 +53,17 @@ module.exports.charge = async request => {
     throw new Error(`The credit card (ending ${lastFourDigits}) expired on ${month}/${year}.`);
   }
 
+  // if the environment variable PAYMENT_FAILS_PER_THOUSAND_CALLS is set, then randomly simulate a charge failure
+  let failRate = process.env['PAYMENT_FAILS_PER_THOUSAND_CALLS']
+  if (failRate) { 
+      const randomNumber = Math.floor(Math.random() * 1000) + 1;
+      if (randomNumber <= failRate) {  
+        let errorMsg="PaymentService charge failed. Bad API token (simulated).";
+        logger.error({transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode }}, errorMsg);
+        throw new Error(errorMsg);
+      }
+  }
+	
   // check baggage for synthetic_request=true, and add charged attribute accordingly
   const baggage = propagation.getBaggage(context.active());
   if (baggage && baggage.getEntry("synthetic_request") && baggage.getEntry("synthetic_request").value === "true") {
@@ -61,7 +74,6 @@ module.exports.charge = async request => {
 
   span.end();
 
-  const { units, nanos, currencyCode } = request.amount;
   logger.info({transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode }}, "Transaction complete.");
   transactionsCounter.add(1, {"app.payment.currency": currencyCode})
   return { transactionId }
