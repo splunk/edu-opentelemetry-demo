@@ -15,12 +15,14 @@ const levelMapping = {
 
 module.exports = pino({
   level: 'info',
+  messageKey: 'message',
   formatters: {
     level(label, number) {
       return { severity: levelMapping[number] || number };
     },
     log(object) {
       return { ...object };
+
     }
   },
   timestamp: pino.stdTimeFunctions.isoTime,
