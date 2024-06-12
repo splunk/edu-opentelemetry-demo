@@ -11,6 +11,8 @@ const myEnv = dotEnv.config({
   path: resolve(__dirname, '../../.env'),
 });
 dotenvExpand.expand(myEnv);
+console.log(`in next.config.js, process.env: ${JSON.stringify(process.env, null, 2)}`)
+
 
 const {
   AD_SERVICE_ADDR = '',
@@ -24,6 +26,10 @@ const {
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = '',
   OTEL_SERVICE_NAME = 'frontend',
   PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = '',
+  NEXT_PUBLIC_SPLUNK_REALM = '',
+  NEXT_PUBLIC_SPLUNK_RUM_TOKEN = '',
+  NEXT_PUBLIC_SPLUNK_RUM_APP_NAME = '',
+  NEXT_PUBLIC_SPLUNK_RUM_ENV = '',
 } = process.env;
 
 const nextConfig = {
@@ -100,6 +106,10 @@ const nextConfig = {
     NEXT_PUBLIC_PLATFORM: ENV_PLATFORM,
     NEXT_PUBLIC_OTEL_SERVICE_NAME: OTEL_SERVICE_NAME,
     NEXT_PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: PUBLIC_OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+    NEXT_PUBLIC_SPLUNK_REALM,
+    NEXT_PUBLIC_SPLUNK_RUM_TOKEN,
+    NEXT_PUBLIC_SPLUNK_RUM_APP_NAME,
+    NEXT_PUBLIC_SPLUNK_RUM_ENV,
   },
 };
 
