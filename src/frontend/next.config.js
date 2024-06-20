@@ -84,6 +84,9 @@ const nextConfig = {
     // Replace entry in config with new value
     return {
       ...config,
+      optimization: {
+        minimize: false,
+      },
       entry
     };
 
