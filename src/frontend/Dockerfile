@@ -23,13 +23,14 @@ RUN npm run grpc:generate
 RUN npm run build
 
 FROM node:18-alpine AS runner
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
 WORKDIR /app
+RUN chown nextjs /app
 RUN apk add --no-cache protobuf-dev protoc
 
 ENV NODE_ENV=production
-
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
 
 COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/utils/telemetry/Instrumentation.js ./
@@ -39,6 +40,7 @@ COPY --from=deps /app/node_modules ./node_modules
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/config_rum_and_start .
 
 USER nextjs
 

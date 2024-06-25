@@ -1,0 +1,53 @@
+chunksDir=/app/.next/static/chunks
+envFile=/app/splunk_rum_env
+
+noRumStart() {
+    echo "Frontend starting with no RUM support."
+    echo "You will probably see browser console errors."
+    cd /app
+    npm start
+    exit
+}
+
+
+if ! [ -f $envFile ]; then
+    echo "Config file \"$envFile\" for Splunk Rum not found."
+    noRumStart
+fi
+
+# Splunk Rum config file found.  Try to substitute SPLUNK_RUM_PLACEHOLDER values
+cd $chunksDir
+mainfile=$(ls main-*.js)
+
+if [ "$mainfile" == '' ] ; then
+  # Next.js main chunk file not found
+  echo "Did not find main file in $chunksDir"
+  noRumStart
+fi
+
+if echo "$mainfile" | grep -q ' ' ; then
+  # Uh-oh, got multiple mainfiles.  
+  echo "Found multiple main files in $chunksDir"
+  noRumStart
+fi
+
+echo splunk_rum_env file contains the following values:
+cat $envFile
+. $envFile
+sed -e "s/SPLUNK_RUM_REALM_PLACEHOLDER/$SPLUNK_RUM_REALM/" \
+    -e "s/SPLUNK_RUM_TOKEN_PLACEHOLDER/$SPLUNK_RUM_TOKEN/" \
+    -e "s/SPLUNK_RUM_APP_PLACEHOLDER/$SPLUNK_RUM_APP_NAME/" \
+    -e "s/SPLUNK_RUM_ENV_PLACEHOLDER/$SPLUNK_RUM_ENV/"  < $mainfile > /tmp/${mainfile}.new
+
+if [ "$?" -ne 0 ]; then
+    # Some error while running the sed command. Do a fallback start
+    echo "Encountered an error while trying to substitute RUM config placeholders"
+    noRumStart
+fi
+
+# All looks good! We should be able to do a regular start
+cp ${mainfile} /tmp/$mainfile.orig
+cp /tmp/${mainfile}.new $mainfile
+cd /app
+npm start
+
