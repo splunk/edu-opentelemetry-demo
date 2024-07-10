@@ -14,8 +14,6 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.ResourceDetectors.Container;
-using OpenTelemetry.ResourceDetectors.Host;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
@@ -63,6 +61,8 @@ string template = "{ {Timestamp: @t, msg: @m, severity: @l, @x, ..@p} }\n";
 
 var builder = WebApplication.CreateBuilder(args);
 string valkeyAddress = builder.Configuration["VALKEY_ADDR"];
+string collectorAddress = builder.Configuration["OTEL_COLLECTOR_NAME"];
+string serviceName = builder.Configuration["OTEL_SERVICE_NAME"];
 if (string.IsNullOrEmpty(valkeyAddress))
 {
     Console.WriteLine("VALKEY_ADDR environment variable is required.");
@@ -72,6 +72,11 @@ if (string.IsNullOrEmpty(collectorAddress))
 {
     Console.WriteLine("OTEL_COLLECTOR_NAME environment variable is required.");
     Environment.Exit(1);
+}
+if (string.IsNullOrEmpty(serviceName))
+{
+    serviceName = "CartService";
+    Console.WriteLine("OTEL_SERVICE_NAME environment variable is not set. Defaulting to service name \'CartService\'.");
 }
 
 //string outputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] trace_id=\"{trace_id}\" span_id=\"{span_id}\" service.name=\"{service_name}\" service.version=\"{service_version}\" deployment.environment=\"{deployment_environment}\"{NewLine}{Message:lj}{NewLine}{Exception}";
