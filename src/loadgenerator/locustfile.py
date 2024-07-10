@@ -9,15 +9,14 @@ import os
 import random
 import uuid
 import logging
-import sys
-from pythonjsonlogger import jsonlogger
+
 from locust import HttpUser, task, between
 from locust_plugins.users.playwright import PlaywrightUser, pw, PageWithRetry, event
 
 from opentelemetry import context, baggage, trace
 from opentelemetry.metrics import set_meter_provider
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import MetricExporter, PeriodicExportingMetricReader
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
@@ -33,6 +32,11 @@ from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
+
+from openfeature import api
+from openfeature.contrib.provider.flagd import FlagdProvider
+from openfeature.contrib.hook.opentelemetry import TracingHook
+
 from playwright.async_api import Route, Request
 
 logger_provider = LoggerProvider(resource=Resource.create(
@@ -63,6 +67,15 @@ RequestsInstrumentor().instrument()
 SystemMetricsInstrumentor().instrument()
 URLLib3Instrumentor().instrument()
 logging.info("Instrumentation complete")
+
+# Initialize Flagd provider
+api.set_provider(FlagdProvider(host=os.environ.get('FLAGD_HOST', 'flagd'), port=os.environ.get('FLAGD_PORT', 8013)))
+api.add_hooks([TracingHook()])
+
+def get_flagd_value(FlagName):
+    # Initialize OpenFeature
+    client = api.get_client()
+    return client.get_integer_value(FlagName, 0)
 
 categories = [
     "binoculars",
@@ -153,8 +166,14 @@ class WebsiteUser(HttpUser):
         checkout_person["userId"] = user
         self.client.post("/api/checkout", json=checkout_person)
 
+    @task(5)
+    def flood_home(self):
+        for _ in range(0, get_flagd_value("loadgeneratorFloodHomepage")):
+            self.client.get("/")
+
     def on_start(self):
-        ctx = baggage.set_baggage("synthetic_request", "true")
+        ctx = baggage.set_baggage("session.id", str(uuid.uuid4()))
+        ctx = baggage.set_baggage("synthetic_request", "true", context=ctx)
         context.attach(ctx)
         self.index()
 
@@ -192,8 +211,9 @@ if browser_traffic_enabled:
 
 
 async def add_baggage_header(route: Route, request: Request):
+    existing_baggage = request.headers.get('baggage', '')
     headers = {
         **request.headers,
-        'baggage': 'synthetic_request=true'
+        'baggage': ', '.join(filter(None, (existing_baggage, 'synthetic_request=true')))
     }
     await route.continue_(headers=headers)

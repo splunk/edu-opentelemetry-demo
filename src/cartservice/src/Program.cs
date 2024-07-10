@@ -62,12 +62,10 @@ string template = "{ {Timestamp: @t, msg: @m, severity: @l, @x, ..@p} }\n";
 //string expressionTemplate = "{\"Timestamp\":\"{Timestamp:yyyy-MM-dd HH:mm:ss}\",\"severity\":\"{Level}\"}\n";
 
 var builder = WebApplication.CreateBuilder(args);
-string redisAddress = builder.Configuration["REDIS_ADDR"];
-string collectorAddress = builder.Configuration["OTEL_COLLECTOR_NAME"];
-string serviceName = builder.Configuration["OTEL_SERVICE_NAME"];
-if (string.IsNullOrEmpty(redisAddress))
+string valkeyAddress = builder.Configuration["VALKEY_ADDR"];
+if (string.IsNullOrEmpty(valkeyAddress))
 {
-    Console.WriteLine("REDIS_ADDR environment variable is required.");
+    Console.WriteLine("VALKEY_ADDR environment variable is required.");
     Environment.Exit(1);
 }
 if (string.IsNullOrEmpty(collectorAddress))
@@ -109,7 +107,7 @@ builder.Logging.AddSerilog(Log.Logger); // Add Serilog
 
 builder.Services.AddSingleton<ICartStore>(x=>
 {
-    var store = new RedisCartStore(x.GetRequiredService<ILogger<RedisCartStore>>(), redisAddress);
+    var store = new ValkeyCartStore(x.GetRequiredService<ILogger<ValkeyCartStore>>(), valkeyAddress);
     store.Initialize();
     return store;
 });
@@ -121,18 +119,19 @@ builder.Services.AddSingleton<IFeatureClient>(x => {
     return client;
 });
 
+
 builder.Services.AddSingleton(x =>
     new CartService(
         x.GetRequiredService<ICartStore>(),
-        new RedisCartStore(x.GetRequiredService<ILogger<RedisCartStore>>(), "badhost:1234"),
+        new ValkeyCartStore(x.GetRequiredService<ILogger<ValkeyCartStore>>(), "badhost:1234"),
         x.GetRequiredService<IFeatureClient>()
 ));
 
 
 Action<ResourceBuilder> appResourceBuilder =
     resource => resource
-        .AddDetector(new ContainerResourceDetector())
-        .AddDetector(new HostDetector());
+        .AddContainerDetector()
+        .AddHostDetector();
 
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(appResourceBuilder)
@@ -155,8 +154,8 @@ builder.Services.AddGrpcHealthChecks()
 
 var app = builder.Build();
 
-var redisCartStore = (RedisCartStore) app.Services.GetRequiredService<ICartStore>();
-app.Services.GetRequiredService<StackExchangeRedisInstrumentation>().AddConnection(redisCartStore.GetConnection());
+var ValkeyCartStore = (ValkeyCartStore) app.Services.GetRequiredService<ICartStore>();
+app.Services.GetRequiredService<StackExchangeRedisInstrumentation>().AddConnection(ValkeyCartStore.GetConnection());
 
 app.MapGrpcService<CartService>();
 app.MapGrpcHealthChecksService();
