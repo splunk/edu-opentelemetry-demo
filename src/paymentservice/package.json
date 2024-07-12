@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "semistandard *.js",
-    "start": "node --require ./opentelemetry.js index.js"
+    "start": "node --require @splunk/otel/instrument index.js"
   },
   "author": "Jonathan Lui",
   "license": "ISC",
