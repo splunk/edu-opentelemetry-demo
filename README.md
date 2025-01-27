@@ -50,6 +50,10 @@ For detailed documentation, see [Demo Documentation][docs]. If you're curious
 about a specific feature, the [docs landing page][docs] can point you in the
 right direction.
 
+## Splunk Course Dev Scenarios
+
+For more information about the scenarios present in the feature flags please refer to the [Scenario Documentation]. 
+
 ## Demos featuring the Astronomy Shop
 
 We welcome any vendor to fork the project to demonstrate their services and
