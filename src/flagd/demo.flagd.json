@@ -37,7 +37,7 @@
         "API fetch error": "api_err",
         "off": "off"
       },
-      "defaultVariant": "Database timeout"
+      "defaultVariant": "API fetch error"
     },
     "slowRecommendationRegionSpan": {
       "description": "Create a slow 5sec span in the recommendation service (get_product_list) for the San Francisco region",

@@ -130,11 +130,11 @@ def get_product_list(request_product_ids):
                 time.sleep(10)
                 raise TimeoutError("Request to the database timed out")
             elif errs_enabled_value == "db_conn_err":
-                pass
+                raise ConnectionError("Unable to connect to the database")
             elif errs_enabled_value == "api_err":
-                pass
+                raise RuntimeError("Failed to fetch product info from external api")
             else:
-                pass
+                raise Exception("An unknown error occured")
 
         
         
