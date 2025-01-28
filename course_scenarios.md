@@ -45,3 +45,20 @@ user interface:
 | Scenario                        | Service(s)       | Description                                                                                               |
 | ----------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
 | `slowRecommendationSpan`                  | Recommendation       | Create a slow 5sec span in the recommendation service (get_product_list)                                                        |
+| `slowRecommendationRegionSpan`                  | Recommendation       | Create a slow 5sec span in the recommendation service (get_product_list) for the San Francisco region(get_product_list)                                                        |
+| `recommendationErrors`                  | Recommendation       | Introduce different types of errors in the recommendation service 20% of the time                                                      |
+
+## Jess Recommendations for Courses
+
+### Using APM
+
+Goal: Replace large payment service error scenario with a variety of smaller scenarios
+
+- slowRecommendationSpan: Demonstrate how to see spike in latency on APM overview built in charts -> View the slow spans in the trace analyzer/waterfall view (filter traces by service and opertation)
+- slowRecommendationRegionSpan: Same as above except can add how to filter by region tag (filter traces by above and region tag)
+- recommendationErrors: show what error spans look like in traces and how to see error messages in the spans
+
+
+### Using RUM
+
+Goal: Replace large checkout process -> payment service error scenario with a variety of smaller scenarios
