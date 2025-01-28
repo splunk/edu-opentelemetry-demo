@@ -67,10 +67,18 @@ class RecommendationService(demo_pb2_grpc.RecommendationServiceServicer):
 
 
 def get_product_list(request_product_ids):
+
+    #regions to randomly assign
+    regions = ["San Francisco", "New York", "London", "Frankfurt", "Mumbai", "Tokyo", "Singapore", "Sydney"]
+
     global first_run
     global cached_ids
     with tracer.start_as_current_span("get_product_list") as span:
         max_responses = 5
+
+        #Randomly assign a region tag value
+        rand_region = regions[random.randint(0, len(regions) - 1)]
+        span.set_attribute("app.recommendation.region", rand_region)
 
         # Formulate the list of characters to list of strings
         request_product_ids_str = ''.join(request_product_ids)
@@ -83,6 +91,14 @@ def get_product_list(request_product_ids):
             time.sleep(5)
         else:
             span.set_attribute("app.recommendation.slow_span_enabled", False)
+
+        #Feature flag Scenario - Slow Region Span
+        if check_feature_flag("slowRecommendationRegionSpan") and rand_region == "San Francisco":
+            time.sleep(5)
+            logger.info("get_product_list: slow region span enabled")
+            span.set_attribute("app.recommendation.slow_region_span_enabled", True)
+        else:
+            span.set_attribute("app.recommendation.slow_region_span_enabled", False)
 
         # Feature flag scenario - Cache Leak
         if check_feature_flag("recommendationCacheFailure"):
