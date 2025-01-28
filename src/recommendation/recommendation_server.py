@@ -121,6 +121,23 @@ def get_product_list(request_product_ids):
             cat_response = product_catalog_stub.ListProducts(demo_pb2.Empty())
             product_ids = [x.id for x in cat_response.products]
 
+        #Feature flag scenario - recommendationErrors
+        errs_enabled_value = api.get_client().get_string_value("recommendationErrors", "not found")
+        span.set_attribute("app.recommendation.recommendation_errs_enabled", errs_enabled_value)
+        random_value = random.random()
+        if errs_enabled_value is not "off" and random_value < 0.2:
+            if errs_enabled_value == "db_timeout":
+                time.sleep(10)
+                raise TimeoutError("Request to the database timed out")
+            elif errs_enabled_value == "db_conn_err":
+                pass
+            elif errs_enabled_value == "api_err":
+                pass
+            else:
+                pass
+
+        
+        
         span.set_attribute("app.products.count", len(product_ids))
 
         # Create a filtered list of products excluding the products received as input

@@ -28,6 +28,17 @@
       },
       "defaultVariant": "off"
     },
+    "recommendationErrors": {
+      "description": "Introduce different types of errors in the recommendation service 20% of the time",
+      "state": "ENABLED",
+      "variants": {
+        "Database timeout": "db_timeout",
+        "Database Unable to connect": "db_conn_err",
+        "API fetch error": "api_err",
+        "off": "off"
+      },
+      "defaultVariant": "Database timeout"
+    },
     "slowRecommendationRegionSpan": {
       "description": "Create a slow 5sec span in the recommendation service (get_product_list) for the San Francisco region",
       "state": "ENABLED",
