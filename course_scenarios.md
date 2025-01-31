@@ -55,7 +55,8 @@ user interface:
 Goal: Replace large payment service error scenario with a variety of smaller scenarios
 
 - slowRecommendationSpan: Demonstrate how to see spike in latency on APM overview built in charts -> View the slow spans in the trace analyzer/waterfall view (filter traces by service and opertation)
-- slowRecommendationRegionSpan: Same as above except can add how to filter by region tag (filter traces by above and region tag), can also index tag and look at regional differences in the tag spotlight
+- slowRecommendationRegionSpan: Same as above except can add how to filter by region tag (filter traces by above and region tag), can also index tag and look at regional differences in the tag spotlight, as well as apply a breakdown on the service map and see differences split by region tag
+You could also add tenant back in, in this manner
 - recommendationErrors: show what error spans look like in traces and how to see error messages in the spans
 - adServiceFailure: view errors in built in charts and traces for the ad service (similar to above just different service)
 - adHighCpu: might be useful for monitoring and detecting on a cpu metric that spike suddenly
